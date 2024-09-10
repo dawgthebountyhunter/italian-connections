@@ -1,101 +1,162 @@
-import Image from "next/image";
+// src/app/page.tsx
+'use client';
+
+import React, { useState, useEffect } from 'react';
+
+type WordSet = {
+  words: string[];
+  connection: string;
+};
+
+type GameBoard = WordSet[];
+
+const gameBoards: GameBoard[] = [
+  [
+    { words: ['Mela', 'Pera', 'Banana', 'Arancia'], connection: 'Frutta' },
+    { words: ['Cane', 'Gatto', 'Topo', 'Cavallo'], connection: 'Animali' },
+    { words: ['Rosso', 'Blu', 'Verde', 'Giallo'], connection: 'Colori' },
+    { words: ['Pizza', 'Pasta', 'Risotto', 'Lasagna'], connection: 'Piatti italiani' }
+  ],
+  [
+    { words: ['Roma', 'Parigi', 'Londra', 'Berlino'], connection: 'Capitali europee' },
+    { words: ['Violino', 'Pianoforte', 'Flauto', 'Chitarra'], connection: 'Strumenti musicali' },
+    { words: ['Calcio', 'Tennis', 'Nuoto', 'Pallacanestro'], connection: 'Sport' },
+    { words: ['Primavera', 'Estate', 'Autunno', 'Inverno'], connection: 'Stagioni' }
+  ],
+  [
+    { words: ['Dante', 'Petrarca', 'Boccaccio', 'Ariosto'], connection: 'Poeti italiani' },
+    { words: ['Leonardo', 'Michelangelo', 'Raffaello', 'Donatello'], connection: 'Artisti del Rinascimento' },
+    { words: ['Vesuvio', 'Etna', 'Stromboli', 'Vulcano'], connection: 'Vulcani italiani' },
+    { words: ['Venezia', 'Firenze', 'Napoli', 'Milano'], connection: 'Città italiane' }
+  ],
+  [
+    { words: ['Cappuccino', 'Espresso', 'Macchiato', 'Latte'], connection: 'Tipi di caffè' },
+    { words: ['Colosseo', 'Torre di Pisa', 'Duomo di Milano', 'Ponte di Rialto'], connection: 'Monumenti italiani' },
+    { words: ['Ferrari', 'Lamborghini', 'Maserati', 'Alfa Romeo'], connection: 'Marche di auto italiane' },
+    { words: ['Parmigiano', 'Mozzarella', 'Gorgonzola', 'Pecorino'], connection: 'Formaggi italiani' }
+  ],
+  [
+    { words: ['Verdi', 'Puccini', 'Rossini', 'Bellini'], connection: 'Compositori d\'opera' },
+    { words: ['Margherita', 'Marinara', 'Quattro Formaggi', 'Capricciosa'], connection: 'Tipi di pizza' },
+    { words: ['Chianti', 'Barolo', 'Prosecco', 'Amarone'], connection: 'Vini italiani' },
+    { words: ['Pinocchio', 'Geppetto', 'Fata Turchina', 'Lucignolo'], connection: 'Personaggi di Pinocchio' }
+  ]
+];
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [currentBoardIndex, setCurrentBoardIndex] = useState<number>(0);
+  const [selectedWords, setSelectedWords] = useState<string[]>([]);
+  const [shuffledWords, setShuffledWords] = useState<string[]>([]);
+  const [foundSets, setFoundSets] = useState<WordSet[]>([]);
+  const [lives, setLives] = useState<number>(4);
+  const [gameOver, setGameOver] = useState<boolean>(false);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+  useEffect(() => {
+    startNewGame();
+  }, []);
+
+  const startNewGame = () => {
+    const newBoardIndex = Math.floor(Math.random() * gameBoards.length);
+    setCurrentBoardIndex(newBoardIndex);
+    setShuffledWords(gameBoards[newBoardIndex].flatMap(set => set.words).sort(() => Math.random() - 0.5));
+    setSelectedWords([]);
+    setFoundSets([]);
+    setLives(4);
+    setGameOver(false);
+  };
+
+  const handleWordClick = (word: string) => {
+    if (gameOver) return;
+    if (selectedWords.includes(word)) {
+      setSelectedWords(selectedWords.filter(w => w !== word));
+    } else if (selectedWords.length < 4) {
+      setSelectedWords([...selectedWords, word]);
+    }
+  };
+
+  const handleSubmit = () => {
+    if (selectedWords.length !== 4 || gameOver) return;
+
+    const correctSet = gameBoards[currentBoardIndex].find(set => 
+      set.words.every(word => selectedWords.includes(word))
+    );
+
+    if (correctSet) {
+      setFoundSets([...foundSets, correctSet]);
+      setSelectedWords([]);
+      setShuffledWords(shuffledWords.filter(word => !correctSet.words.includes(word)));
+      if (foundSets.length === 3) {
+        setGameOver(true);
+      }
+    } else {
+      setLives(lives - 1);
+      setSelectedWords([]);
+      if (lives === 1) {
+        setGameOver(true);
+      }
+    }
+  };
+
+  return (
+    <main className="flex min-h-screen flex-col items-center justify-between p-24 bg-gray-100">
+      <h1 className="text-4xl font-bold mb-8 text-gray-800">Italian Connections</h1>
+      <div className="mb-4 text-xl font-semibold text-gray-700">Lives: {lives}</div>
+      <div className="grid grid-cols-4 gap-4 mb-8">
+        {shuffledWords.map((word, index) => (
+          <button
+            key={index}
+            className={`p-4 border rounded text-lg font-semibold ${
+              selectedWords.includes(word) 
+                ? 'bg-blue-500 text-white' 
+                : 'bg-white text-gray-800 hover:bg-gray-200'
+            }`}
+            onClick={() => handleWordClick(word)}
+            disabled={gameOver}
           >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+            {word}
+          </button>
+        ))}
+      </div>
+      <button 
+        onClick={handleSubmit}
+        className="mb-8 px-6 py-2 bg-green-500 text-white rounded hover:bg-green-600 text-lg font-semibold"
+        disabled={gameOver}
+      >
+        Submit
+      </button>
+      <button 
+        onClick={startNewGame}
+        className="mb-8 px-6 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-lg font-semibold"
+      >
+        New Game
+      </button>
+      <div className="w-full max-w-2xl">
+        <h2 className="text-2xl mb-4 font-bold text-gray-800">Found Sets:</h2>
+        {foundSets.map((set, index) => (
+          <div key={index} className="mb-4 p-4 bg-white rounded shadow">
+            <p className="font-semibold text-gray-800">{set.connection}:</p>
+            <p className="text-gray-700">{set.words.join(', ')}</p>
+          </div>
+        ))}
+      </div>
+      {gameOver && (
+        <div className="mt-8 p-4 bg-white rounded shadow">
+          <h2 className="text-2xl mb-4 font-bold text-gray-800">
+            {lives > 0 ? 'Congratulations! You won!' : 'Game Over'}
+          </h2>
+          {lives === 0 && (
+            <div>
+              <p className="text-xl mb-2 font-semibold text-gray-800">Correct Answers:</p>
+              {gameBoards[currentBoardIndex].map((set, index) => (
+                <div key={index} className="mb-2">
+                  <p className="font-semibold text-gray-800">{set.connection}:</p>
+                  <p className="text-gray-700">{set.words.join(', ')}</p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+      )}
+    </main>
   );
 }
